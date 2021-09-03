@@ -1,0 +1,2 @@
+# schema-registry-testcontainers
+Example
