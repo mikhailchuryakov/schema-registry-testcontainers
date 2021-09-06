@@ -10,6 +10,8 @@ class SchemaRegistryContainer(container: GenericContainer) {
   private val schemaPort = 8081
 
   def schemaUrl: SchemaUrl = SchemaUrl(s"http://${container.container.getHost}:${container.container.getMappedPort(schemaPort)}")
+
+  def close(): Unit = container.container.close()
 }
 
 object SchemaRegistryContainer {

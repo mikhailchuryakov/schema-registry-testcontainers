@@ -10,6 +10,8 @@ class KafkaNodeContainer(container: KafkaContainer) {
   def getInternalHost: String = container.getEnvMap.asScala("KAFKA_HOST_NAME")
 
   def getBootstrap: String = container.getBootstrapServers
+
+  def close(): Unit = container.close()
 }
 
 object KafkaNodeContainer {

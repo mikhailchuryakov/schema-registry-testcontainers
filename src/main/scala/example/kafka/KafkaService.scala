@@ -35,7 +35,7 @@ class KafkaServiceImpl[F[_] : ConcurrentEffect : ContextShift : Timer : Applicat
                       (implicit recordFormat: RecordFormat[T]): F[(String, Array[Byte]) => Option[T]] =
     SchemaRegistryClientSettings[F](schemaUrl.x).createSchemaRegistryClient
       .map { schemaRegistryClient =>
-        val config: java.util.Map[String, _] = Map(("schema.registry.url", schemaUrl.x)).asJava
+        val config: java.util.Map[String, String] = Map(("schema.registry.url", schemaUrl.x)).asJava
         val inner = new KafkaAvroDeserializer(schemaRegistryClient)
         inner.configure(config, false)
         val d = new org.apache.kafka.common.serialization.Deserializer[T] {

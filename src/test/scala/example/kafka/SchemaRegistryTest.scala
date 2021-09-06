@@ -13,6 +13,7 @@ import example.kafka.common.TopicConfig
 import fs2.kafka.vulcan.SchemaRegistryClientSettings
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import org.apache.avro.Schema
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.testcontainers.containers.Network
@@ -22,7 +23,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import scala.util.Random
 
-class SchemaRegistryTest extends AnyFlatSpec with Matchers {
+class SchemaRegistryTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   implicit val ec: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
   implicit val localCs: ContextShift[IO] = IO.contextShift(ec)
   implicit val timer: Timer[IO] = IO.timer(ec)
@@ -34,6 +35,17 @@ class SchemaRegistryTest extends AnyFlatSpec with Matchers {
 
   val delay: FiniteDuration = 50 milliseconds
   val messageCount = 100
+  val chunkSize = 50
+  val batchSize = 50
+  val chunkTime = 10 seconds
+  val timeout = 30 seconds
+
+  override def afterAll(): Unit = {
+    schNode.close()
+    kfkNode.close()
+
+    super.afterAll()
+  }
 
   val consumerConfig: ConsumerConfig = ConsumerConfig(
     Broker(kfkNode.getBootstrap),
@@ -41,9 +53,9 @@ class SchemaRegistryTest extends AnyFlatSpec with Matchers {
     barbazTopic,
     ConsumerGroup("barbazgroup"),
     ConsumerId("consumer_bar_baz-1"),
-    ChunkSize(50),
-    ChunkTimeWindow(10 seconds),
-    BatchSize(50)
+    ChunkSize(chunkSize),
+    ChunkTimeWindow(chunkTime),
+    BatchSize(batchSize)
   )
 
   val pusherConfig: PusherConfig = PusherConfig(
@@ -68,7 +80,7 @@ class SchemaRegistryTest extends AnyFlatSpec with Matchers {
       _ <- initialize
       counter <- Ref.of[IO, Int](0)
       kafkaService = new KafkaServiceImpl[IO, BarBazMessage]
-      _ <- kafkaService.consumer(consumerConfig, processor(counter)).timeoutTo(30 seconds, IO.unit)
+      _ <- kafkaService.consumer(consumerConfig, processor(counter)).timeoutTo(timeout, IO.unit)
       count <- counter.get
     } yield count).unsafeRunSync() shouldBe messageCount
   }
